@@ -5,9 +5,42 @@ import time
 import subprocess
 
 st.set_page_config(page_title="İhale Takip & Analiz Sistemi", layout="wide")
+
+# ==========================================
+# 🔒 GÜVENLİK DUVARI (LOGIN) BÖLÜMÜ
+# ==========================================
+def giris_kontrolu():
+    # Eğer daha önce doğru şifre girildiyse sistemi aç
+    if st.session_state.get("giris_basarili", False):
+        return True
+        
+    # Girilmediyse kilit ekranını göster
+    st.title("🔒 Yalnızca Yetkili Personel")
+    st.info("Bu panele erişim şirket yönetimi ile sınırlandırılmıştır.")
+    
+    girilen_sifre = st.text_input("Lütfen yönetici şifresini girin:", type="password")
+    
+    if st.button("Giriş Yap"):
+        # Şifreyi Streamlit Secrets'tan alıyoruz. Kasada yoksa geçici olarak 'ihale2026' kabul eder.
+        dogru_sifre = st.secrets.get("PANEL_SIFRESI", "ihale2026")
+        
+        if girilen_sifre == dogru_sifre:
+            st.session_state["giris_basarili"] = True
+            st.rerun() # Sayfayı yenile ve paneli aç
+        else:
+            st.error("❌ Hatalı şifre! Lütfen tekrar deneyin.")
+            
+    return False
+
+# Eğer giriş yapılmadıysa, kodun alt kısmını ÇALIŞTIRMA ve burada dur!
+if not giris_kontrolu():
+    st.stop()
+# ==========================================
+
+
+# --- BURADAN SONRASI İHALE PANELİ KODLARIDIR ---
 st.title("🏗️ Doğu Avrupa İhale Takip ve Raporlama Paneli")
 
-# 1. Excel Dosyalarını Okuma ve Birleştirme
 @st.cache_data(ttl=60)
 def verileri_yukle():
     df_listesi = []
@@ -31,7 +64,6 @@ def verileri_yukle():
     else:
         return pd.DataFrame(columns=["Kurum", "Ülke", "İhale/Proje Adı", "Tarih / Son Başvuru"])
 
-# 2. Sol Menü ve Dinamik Filtre
 st.sidebar.header("Ayarlar ⚙️")
 
 if st.sidebar.button("🔄 Verileri İnternetten Güncelle"):
@@ -60,7 +92,6 @@ else:
     hedef_ulkeler = []
     st.sidebar.warning("Henüz Excel verisi yok. Lütfen yukarıdaki butona basarak verileri çekin.")
 
-# 3. İhale Listesi Ekranı
 st.subheader("📌 Güncel İhaleler ve Projeler")
 
 if not df.empty:
@@ -70,17 +101,12 @@ if not df.empty:
         st.write(f"Seçili kriterlere uygun **{len(filtrelenmis_df)}** proje listeleniyor.")
         st.dataframe(filtrelenmis_df, use_container_width=True)
         
-        # 4. Yapay Zeka Analizi ve RAPORLAMA Bölümü
         st.markdown("---")
         st.subheader("🧠 Teknik Uygunluk Analizi ve Raporlama")
         
-        # İhale seçimi
         secilen_ihale = st.selectbox("Analiz edilecek ve raporlanacak ihaleyi seçin:", filtrelenmis_df["İhale/Proje Adı"])
-        
-        # Seçilen ihalenin tüm satır bilgilerini (Ülke, Kurum vs.) yakalıyoruz
         ihale_bilgisi = filtrelenmis_df[filtrelenmis_df["İhale/Proje Adı"] == secilen_ihale].iloc[0]
 
-        # Ekranı iki sütuna bölüyoruz
         sol_sutun, sag_sutun = st.columns(2)
         
         with sol_sutun:
@@ -103,8 +129,6 @@ if not df.empty:
                     
         with sag_sutun:
             st.success("📄 Yönetim Raporu İndirmeye Hazır")
-            
-            # YENİ EKLENEN KISIM: İndirilecek Raporun Şablonu
             rapor_metni = f"""YÖNETİCİ ÖZETİ: İHALE TEKNİK UYGUNLUK RAPORU
 ---------------------------------------------------
 Kurum: {ihale_bilgisi['Kurum']}
@@ -124,7 +148,6 @@ Son Başvuru: {ihale_bilgisi['Tarih / Son Başvuru']}
 ---------------------------------------------------
 *Bu rapor Şirket İhale Takip Sistemi tarafından otomatik oluşturulmuştur.*
 """
-            # Raporu bilgisayara indiren sihirli buton
             st.download_button(
                 label="📥 Üst Yönetim Raporunu İndir (TXT)",
                 data=rapor_metni,
