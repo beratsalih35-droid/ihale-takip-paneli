@@ -98,11 +98,10 @@ if not df.empty:
     filtrelenmis_df = df[df["Ülke"].isin(hedef_ulkeler)]
     
     if not filtrelenmis_df.empty:
-        # Şirket profiline göre simüle edilmiş akıllı uyum skoru ekleyelim
         def skor_hesapla(satir):
             baslik = str(satir["İhale/Proje Adı"]).lower()
-            puan = 70 # Temel uyum
-            if any(kelime in baslik for k in ["port", "marine", "liman", "bridge", "viaduct", "highway", "road", "structural"]):
+            puan = 70
+            if any(kelime in baslik for kelime in ["port", "marine", "liman", "bridge", "viaduct", "highway", "road", "structural"]):
                 puan += 20
             return f"%{min(puan, 96)}"
             
@@ -129,13 +128,13 @@ if not df.empty:
                     st.success("✅ Analiz Tamamlandı!")
                     st.markdown("""
                     **1. İş Bitirme & Tecrübe Eşiği Uygunluğu:**
-                    * Şirketimizin son 5 yılda tamamladığı uluslararası altyapı projeleri, bu ihalenin benzer iş tanımını (Eurocode standartlarında yapısal imalatlar) tam olarak karşılamaktadır.
+                    * Şirketimizin son 5 yılda tamamladığı uluslararası altyapı projeleri, bu ihalenin benzer iş tanımını tam olarak karşılamaktadır.
                     
                     **2. Teknik Personel ve Ekipman Gereksinimleri:**
-                    * Şantiyede tam zamanlı bulundurulması zorunlu "Kıdemli Geoteknik Uzmanı" ve "Köprü/Viyadük Yapısal Tasarım Şefi" kadrolarımız mevcuttur.
+                    * Şantiyede tam zamanlı bulundurulması zorunlu teknik kadrolarımız mevcuttur.
                     
                     **3. Finansal ve Ciro Kriterleri:**
-                    * Projenin tahmini büyüklüğü şirketimizin belirlenen üst sınır bütçe kapasitesi içerisindedir. Likidite ve teminat mektubu oranları uygundur.
+                    * Projenin büyüklüğü şirketimizin üst sınır bütçe kapasitesi içerisindedir.
                     
                     **4. Stratejik Karar (GO / NO-GO):**
                     * **GİRİLMELİDİR (GO).** Bölgedeki referanslarımızı güçlendirmek için yüksek stratejik öneme sahiptir.
@@ -145,7 +144,7 @@ if not df.empty:
             st.success("📄 Resmi Yönetim Kurulu Raporu")
             
             kurumsal_rapor = f"""==================================================
-        INSAAT A.Ş. - KURUMSAL İHALE DEĞERLENDİRME RAPORU
+        KURUMSAL İHALE DEĞERLENDİRME RAPORU
 ==================================================
 Tarih: {time.strftime('%Y-%m-%d')}
 Kurum: {ihale_bilgisi['Kurum']}
@@ -155,15 +154,13 @@ Son Başvuru Tarihi: {ihale_bilgisi['Tarih / Son Başvuru']}
 --------------------------------------------------
 
 1. İHALE KAPSAMI VE TEKNİK KRİTERLER
-- İhale, ilgili ülkenin uluslararası standartlara (özellikle Eurocode ve yerel yönetmelikler) uygun yapısal ve altyapı işlerini kapsamaktadır.
-- Şirketimizin seçilen uzmanlık alanları ile doğrudan örtüşmektedir.
+- İhale, uluslararası standartlara uygun yapısal ve altyapı işlerini kapsamaktadır.
 
 2. FİNANSAL VE RİSK ANALİZİ
-- Bölgesel tedarik zinciri ve kur dalgalanması riskleri teklif maliyetine %8 contingency (pay) olarak eklenmelidir.
-- Teminat mektubu koşulları uluslararası bankacılık standartlarındadır.
+- Bölgesel tedarik zinciri ve kur dalgalanması riskleri dikkate alınmıştır.
 
 3. SONUÇ VE YÖNETİM TAVSİYESİ (GO / NO-GO)
-- Öneri: İhaleye Konsorsiyum / Ortak Girişim (JV) şartları aranmaksızın ana yüklenici olarak başvurulması uygundur.
+- Öneri: İhaleye ana yüklenici olarak başvurulması uygundur.
 - Stratejik Uygunluk Skoru: Yüksek (%90+)
 
 --------------------------------------------------
