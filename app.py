@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import time
 import subprocess
+import sys
 
 st.set_page_config(page_title="Üst Yapı İhale & Karar Destek Sistemi", layout="wide")
 
@@ -65,8 +66,8 @@ st.sidebar.header("Veri Yönetimi")
 if st.sidebar.button("🔄 Verileri İnternetten Güncelle"):
     with st.spinner("EBRD ECEPP sisteminden güncel ihaleler çekiliyor..."):
         try:
-            # Sadece çalışan EBRD botunu tetikliyoruz
-            subprocess.run(["python", "EBRD_Botu/ebrd_cekici.py"], check=True)
+            # ÇÖZÜM: sys.executable ile bulut sunucunun kendi Python motorunu kullanıyoruz
+            subprocess.run([sys.executable, "EBRD_Botu/ebrd_cekici.py"], check=True)
             st.cache_data.clear()
             st.sidebar.success("✅ Veriler başarıyla güncellendi!")
             time.sleep(2)
