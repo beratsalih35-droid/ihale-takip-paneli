@@ -33,10 +33,10 @@ if not giris_kontrolu():
     st.stop()
 # ==========================================
 
-st.title("🏢 Doğu Avrupa Üst Yapı İhale & Uygunluk Analiz Paneli")
-st.markdown("*Odak Alanı: Okul, Konut, Hastane, Sanayi ve Her Türlü Bina Yapıları (Köprü/Viyadük Hariç)*")
+st.title("🏢 Doğu Avrupa & Balkanlar Üst Yapı İhale Analiz Paneli")
+st.markdown("*Odak Alanı: Türkiye'ye Yakın Balkan ve Doğu Avrupa Ülkeleri | Üst Yapı (Okul, Konut, Hastane, Sanayi) | Köprü/Viyadük Hariç*")
 
-# 1. EBRD Excel Verisini Okuma
+# 1. EBRD Excel Verisini Okuma ve Hariç Tutulan Ülkeleri Süzme
 @st.cache_data(ttl=60)
 def verileri_yukle():
     ebrd_yolu = os.path.join("EBRD_Botu", "ebrd_veriler.xlsx")
@@ -44,6 +44,11 @@ def verileri_yukle():
         df_ebrd = pd.read_excel(ebrd_yolu)
         df_ebrd.rename(columns={"Son Başvuru / Tarih": "Tarih / Son Başvuru"}, inplace=True)
         df_ebrd.fillna("Belirtilmemiş", inplace=True)
+        
+        # BULGARİSTAN VE YUNANİSTAN'I KESİNLİKLE LİSTEDEN ÇIKARMA FİLTRESİ
+        yasakli_ulkeler = ["Bulgaria", "Bulgaristan", "Greece", "Yunanistan"]
+        df_ebrd = df_ebrd[~df_ebrd["Ülke"].astype(str).str.contains('|'.join(yasakli_ulkeler), case=False, na=False)]
+        
         return df_ebrd
     else:
         return pd.DataFrame(columns=["Kurum", "Ülke", "İhale/Proje Adı", "Tarih / Son Başvuru"])
@@ -57,8 +62,8 @@ uzmanlik_alanlari = st.sidebar.multiselect(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("🎯 **Hedef Kriterlerimiz:**")
-st.sidebar.info("• **Hariç Tutulanlar:** Köprü, Viyadük, Otoyol\n• **Bütçe Aralığı:** 1M€ - 50M€")
+st.sidebar.markdown("🎯 **Hedef Stratejimiz:**")
+st.sidebar.info("• **Bölgeler:** Balkanlar & Doğu Avrupa\n• **Hariç Tutulanlar:** Bulgaristan, Yunanistan, Köprü, Viyadük\n• **Bütçe Aralığı:** 1M€ - 50M€")
 
 st.sidebar.markdown("---")
 st.sidebar.header("Veri Yönetimi")
@@ -66,7 +71,6 @@ st.sidebar.header("Veri Yönetimi")
 if st.sidebar.button("🔄 Verileri İnternetten Güncelle"):
     with st.spinner("EBRD ECEPP sisteminden güncel ihaleler çekiliyor..."):
         try:
-            # ÇÖZÜM: sys.executable ile bulut sunucunun kendi Python motorunu kullanıyoruz
             subprocess.run([sys.executable, "EBRD_Botu/ebrd_cekici.py"], check=True)
             st.cache_data.clear()
             st.sidebar.success("✅ Veriler başarıyla güncellendi!")
@@ -79,12 +83,12 @@ df = verileri_yukle()
 
 if not df.empty:
     mevcut_ulkeler = sorted(df["Ülke"].astype(str).unique().tolist())
-    hedef_ulkeler = st.sidebar.multiselect("Hedef Ülkeler", mevcut_ulkeler, default=mevcut_ulkeler)
+    hedef_ulkeler = st.sidebar.multiselect("Hedef Ülkeler (Balkanlar / Doğu Avrupa)", mevcut_ulkeler, default=mevcut_ulkeler)
 else:
     hedef_ulkeler = []
 
-# 3. Filtreleme ve Köprü/Viyadük Eleme Mantığı
-st.subheader("📌 Filtrelenmiş Üst Yapı Portföyü")
+# 3. Filtreleme: Ülke, Köprü/Viyadük Eleme ve Üst Yapı Odaklı Skorlama
+st.subheader("📌 Filtrelenmiş Bölgesel Üst Yapı Portföyü")
 
 if not df.empty:
     filtrelenmis_df = df[df["Ülke"].isin(hedef_ulkeler)].copy()
@@ -112,7 +116,7 @@ if not df.empty:
             
         filtrelenmis_df["Üst Yapı Uyum Skoru"] = filtrelenmis_df.apply(skor_hesapla, axis=1)
         
-        st.write(f"Şirket kriterlerinize (Köprü/Viyadük hariç, 1-50M€ aralığı) uyan **{len(filtrelenmis_df)}** üst yapı projesi listelenmiştir.")
+        st.write(f"Balkanlar/Doğu Avrupa bölgesinde (Bulgaristan/Yunanistan ve köprü projeleri hariç) kriterlerinize uyan **{len(filtrelenmis_df)}** üst yapı projesi listelenmiştir.")
         st.dataframe(filtrelenmis_df, use_container_width=True)
         
         # 4. Kurumsal Üst Yapı Analizi ve Karar Modülü
@@ -128,21 +132,21 @@ if not df.empty:
             st.info(f"**Seçilen Proje:** {secilen_ihale}\n\n**Kurum:** {ihale_bilgisi['Kurum']} | **Ülke:** {ihale_bilgisi['Ülke']}")
             
             if st.button("Üst Yapı Teknik Analizini Çalıştır"):
-                with st.spinner("Mimari ve statik üst yapı şartnameleri inceleniyor..."):
+                with st.spinner("Bölgesel mimari ve statik üst yapı şartnameleri inceleniyor..."):
                     time.sleep(2)
                     st.success("✅ Analiz Tamamlandı!")
                     st.markdown("""
                     **1. Mimari & Statik Kapsam Uygunluğu:**
-                    * Proje, şirketimizin uzmanlık alanındaki bina ve üst yapı (betonarme/çelik karkas, ince işler, mekanik/elektrik entegrasyonu) standartlarıyla birebir örtüşmektedir. (Ağır altyapı/köprü kalemi içermez).
+                    * Proje, şirketimizin uzmanlık alanındaki bina ve üst yapı (betonarme/çelik karkas, ince işler, mekanik/elektrik entegrasyonu) standartlarıyla birebir örtüşmektedir. (Bulgaristan/Yunanistan hariç tutulmuş, ağır altyapı/köprü kalemi içermez).
                     
                     **2. Bütçe ve Kapasite Uygunluğu:**
                     * Tahkik edilen yatırım bedeli 1M€ - 50M€ hedef bütçe aralığımız içerisindedir.
                     
-                    **3. Şantiye & Lojistik Planlama:**
-                    * Bölgesel tedarik zinciri ve yerel taşeron kapasitesi üst yapı imalatları için elverişlidir.
+                    **3. Lojistik ve Tedarik Zinciri:**
+                    * Türkiye'ye yakın Balkan/Doğu Avrupa hattında olması nedeniyle lojistik operasyonlar ve malzeme sevkiyatı avantajlıdır.
                     
                     **4. Stratejik Karar (GO / NO-GO):**
-                    * **GİRİLMELİDİR (GO).** Üst yapı portföyümüzü genişletmek için yüksek öncelikli fırsattır.
+                    * **GİRİLMELİDİR (GO).** Hedef coğrafyadaki pazar payımızı artırmak için yüksek öncelikli fırsattır.
                     """)
                     
         with kolon2:
@@ -153,21 +157,21 @@ if not df.empty:
 ==================================================
 Tarih: {time.strftime('%Y-%m-%d')}
 Kurum: {ihale_bilgisi['Kurum']}
-Hedef Ülke: {ihale_bilgisi['Ülke']}
+Hedef Ülke: {ihale_bilgisi['Ülke']} (Balkanlar / Doğu Avrupa)
 Proje / İhale Adı: {ihale_bilgisi['İhale/Proje Adı']}
 Son Başvuru Tarihi: {ihale_bilgisi['Tarih / Son Başvuru']}
 --------------------------------------------------
 
-1. PROJE KAPSAMI VE ÜST YAPI KRİTERLERİ
-- Proje, köprü ve viyadük gibi altyapı işlerini kesinlikle içermemekte olup, tamamen bina/üst yapı (okul/konut/hastane/sanayi) odaklıdır.
-- Şirketimizin ana faaliyet alanları ile tam uyumludur.
+1. PROJE KAPSAMI VE COĞRAFİ KRİTERLER
+- Proje Bulgaristan ve Yunanistan haricindeki Doğu Avrupa ve Balkan hattında konumlanmıştır.
+- Köprü ve viyadük gibi altyapı işlerini içermemekte olup, tamamen bina/üst yapı (okul/konut/hastane/sanayi) odaklıdır.
 
-2. FİNANSAL VE MALİYET KONTROLÜ
-- 1M€ - 50M€ bütçe bandımıza uygun ölçektedir. 
-- Metraj ve anahtar teslim birim fiyat analizleri şirket standartlarımızla uyumludur.
+2. FİNANSAL VE LOJİSTİK RİSK ANALİZİ
+- 1M€ - 50M€ bütçe bandımıza uygundur. 
+- Türkiye'ye yakınlık, lojistik ve taşeron yönetimi açısından operasyonel riskleri minimize etmektedir.
 
 3. SONUÇ VE YÖNETİM TAVSİYESİ (GO / NO-GO)
-- Öneri: Üst yapı grubumuz adına ihaleye teklif verilmesi uygundur.
+- Öneri: Hedef bölgedeki üst yapı yapılanmamız adına ihaleye teklif verilmesi uygundur.
 - Üst Yapı Uyum Skoru: Çok Yüksek (%95+)
 
 --------------------------------------------------
@@ -176,10 +180,10 @@ Son Başvuru Tarihi: {ihale_bilgisi['Tarih / Son Başvuru']}
             st.download_button(
                 label="📥 Üst Yapı Yönetim Raporunu İndir (.TXT)",
                 data=kurumsal_rapor,
-                file_name="Ust_Yapi_Ihale_Degerlendirme_Raporu.txt",
+                file_name="Balkanlar_Ust_Yapi_Ihale_Raporu.txt",
                 mime="text/plain"
             )
     else:
-        st.warning("Seçilen kriterlere uygun (köprü/viyadük hariç tutulduğunda) üst yapı projesi bulunamadı.")
+        st.warning("Seçilen coğrafi ve teknik kriterlere uygun (Bulgaristan/Yunanistan ve köprüler hariç tutulduğunda) üst yapı projesi bulunamadı.")
 else:
     st.error("Veri bulunamadı. Lütfen sol menüden 'Verileri İnternetten Güncelle' butonuna basın.")
