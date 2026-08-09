@@ -148,22 +148,7 @@ if not df.empty:
             
             if st.button("Kapsamlı Mühendislik Analizini Başlat"):
                 # ... (Analiz kodların burada aynı şekilde kalacak)
-        st.markdown("---")
-        st.subheader("🧠 Profesyonel Mühendislik Ön Fizibilite & Risk Analizi")
-        
-        secilen_ihale = st.selectbox("Detaylı İnceleme İçin Proje Seçin:", filtrelenmis_df["İhale/Proje Adı"])
-        ihale_bilgisi = filtrelenmis_df[filtrelenmis_df["İhale/Proje Adı"] == secilen_ihale].iloc[0]
-
-        kolon1, kolon2 = st.columns(2)
-        
-        with kolon1:
-            st.info(f"**Seçilen Proje:** {secilen_ihale}\n\n**Kurum:** {ihale_bilgisi['Kurum']} | **Ülke:** {ihale_bilgisi['Ülke']}")
-            
-            if st.button("Kapsamlı Mühendislik Analizini Başlat"):
-                with st.spinner("Şartname finansal, statik ve lojistik parametrelere göre taranıyor..."):
-                    time.sleep(2.5)
-                    st.success("✅ Profesyonel Analiz Tamamlandı!")
-                    st.markdown("""
+       
                     **1. Statik & Mimari Kapsam Değerlendirmesi:**
                     * Proje, ağır altyapı (köprü/viyadük) kalemi içermemekte olup; tamamen betonarme/çelik karkas, ince işler ve elektromekanik (MEB) entegrasyonu içeren üst yapı formatındadır. Eurocode standartlarına tam uyum beklenmektedir.
                     
