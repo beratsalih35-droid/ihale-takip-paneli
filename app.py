@@ -34,9 +34,9 @@ if not giris_kontrolu():
 # ==========================================
 
 st.title("🏢 Doğu Avrupa & Balkanlar Üst Yapı İhale Analiz Paneli")
-st.markdown("*Odak Alanı: Türkiye'ye Yakın Balkan ve Doğu Avrupa Ülkeleri | Üst Yapı (Okul, Konut, Hastane, Sanayi) | Köprü/Viyadük Hariç*")
+st.markdown("*Odak Alanı: Sadece Onaylı Balkan ve Doğu Avrupa Ülkeleri | Üst Yapı Odaklı | Köprü/Viyadük Hariç*")
 
-# 1. EBRD Excel Verisini Okuma ve Kesin Hariç Tutma Süzgeci
+# 1. EBRD Excel Verisini Okuma ve BEYAZ LİSTE (İzin Verilenler) Filtresi
 @st.cache_data(ttl=60)
 def verileri_yukle():
     ebrd_yolu = os.path.join("EBRD_Botu", "ebrd_veriler.xlsx")
@@ -45,9 +45,24 @@ def verileri_yukle():
         df_ebrd.rename(columns={"Son Başvuru / Tarih": "Tarih / Son Başvuru"}, inplace=True)
         df_ebrd.fillna("Belirtilmemiş", inplace=True)
         
-        # KESİN HARİÇ TUTMA FİLTRESİ
-        yasakli_ulkeler = ["Bulgaria", "Bulgaristan", "Greece", "Yunanistan"]
-        temiz_df = df_ebrd[~df_ebrd["Ülke"].astype(str).str.contains('|'.join(yasakli_ulkeler), case=False, na=False)].copy()
+        # BEYAZ LİSTE: Sadece izin verdiğimiz stratejik ülkeler sisteme alınır
+        # (İhtiyacına göre bu listeye yeni ülkeler ekleyebilir veya çıkarabilirsin)
+        izin_verilen_ulkeler = [
+            "Romania", "Romanya", 
+            "Serbia", "Sırbistan", 
+            "Poland", "Polonya", 
+            "Croatia", "Hırvatistan", 
+            "Bosnia and Herzegovina", "Bosna-Hersek", 
+            "Ukraine", "Ukrayna", 
+            "Albania", "Arnavutluk", 
+            "North Macedonia", "Kuzey Makedonya",
+            "Montenegro", "Karadağ",
+            "Moldova", "Kosovo", "Hungary", "Macaristan"
+        ]
+        
+        # Sadece bu listedeki ülkeleri içeren satırları tutuyoruz (Büyük/küçük harf duyarlılığını esneterek)
+        desen = '|'.join(izin_verilen_ulkeler)
+        temiz_df = df_ebrd[df_ebrd["Ülke"].astype(str).str.contains(desen, case=False, na=False)].copy()
         
         return temiz_df
     else:
@@ -62,8 +77,8 @@ uzmanlik_alanlari = st.sidebar.multiselect(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("🎯 **Aktif Filtre Kurallarımız:**")
-st.sidebar.info("• **Hariç Tutulan Ülkeler:** Bulgaristan, Yunanistan\n• **Hariç Tutulan İşler:** Köprü, Viyadük, Otoyol\n• **Bütçe Aralığı:** 1M€ - 50M€")
+st.sidebar.markdown("🎯 **Stratejik Süzgeç Kurallarımız:**")
+st.sidebar.info("• **Coğrafya:** Sadece Onaylı Balkanlar & Doğu Avrupa (Beyaz Liste)\n• **Hariç Tutulanlar:** Bulgaristan, Yunanistan ve Diğerleri\n• **Hariç Tutulan İşler:** Köprü, Viyadük, Otoyol\n• **Bütçe Aralığı:** 1M€ - 50M€")
 
 st.sidebar.markdown("---")
 st.sidebar.header("Veri Yönetimi")
@@ -83,12 +98,12 @@ df = verileri_yukle()
 
 if not df.empty:
     mevcut_ulkeler = sorted(df["Ülke"].astype(str).unique().tolist())
-    hedef_ulkeler = st.sidebar.multiselect("Hedef Ülkeler (Balkanlar / Doğu Avrupa)", mevcut_ulkeler, default=mevcut_ulkeler)
+    hedef_ulkeler = st.sidebar.multiselect("Hedef Ülkeler (Onaylı Liste)", mevcut_ulkeler, default=mevcut_ulkeler)
 else:
     hedef_ulkeler = []
 
-# 3. Filtreleme: Ülke, Köprü/Viyadük Eleme ve Üst Yapı Odaklı Skorlama
-st.subheader("📌 Filtrelenmiş Bölgesel Üst Yapı Portföyü")
+# 3. Filtreleme: Beyaz Liste Ülkeleri, Köprü/Viyadük Eleme ve Skorlama
+st.subheader("📌 Onaylı Bölgesel Üst Yapı Portföyü")
 
 if not df.empty:
     filtrelenmis_df = df[df["Ülke"].isin(hedef_ulkeler)].copy()
@@ -116,7 +131,7 @@ if not df.empty:
             
         filtrelenmis_df["Üst Yapı Uyum Skoru"] = filtrelenmis_df.apply(skor_hesapla, axis=1)
         
-        st.success(f"🔒 **Güvenlik Süzgeci Aktif:** Bulgaristan, Yunanistan ve köprü/viyadük projeleri sistem tarafından tamamen ayıklanmıştır. Listelenen uygun proje sayısı: **{len(filtrelenmis_df)}**")
+        st.success(f"🔒 **Beyaz Liste Süzgeci Aktif:** Sadece stratejik Balkan ve Doğu Avrupa ülkeleri ile üst yapı projeleri listelenmektedir. Uygun proje sayısı: **{len(filtrelenmis_df)}**")
         st.dataframe(filtrelenmis_df, use_container_width=True)
         
         # 4. Kurumsal Üst Yapı Analizi ve Karar Modülü
@@ -137,16 +152,16 @@ if not df.empty:
                     st.success("✅ Analiz Tamamlandı!")
                     st.markdown("""
                     **1. Mimari & Statik Kapsam Uygunluğu:**
-                    * Proje, şirketimizin uzmanlık alanındaki bina ve üst yapı (betonarme/çelik karkas, ince işler, mekanik/elektrik entegrasyonu) standartlarıyla birebir örtüşmektedir. (Bulgaristan/Yunanistan ve ağır altyapı/köprü kalemleri sistem filtresiyle harici tutulmuştur).
+                    * Proje, şirketimizin uzmanlık alanındaki bina ve üst yapı (betonarme/çelik karkas, ince işler, mekanik/elektrik entegrasyonu) standartlarıyla birebir örtüşmektedir. (Sadece onaylı Balkan/Doğu Avrupa ülkeleri filtrelenmiş olup, ağır altyapı/köprü kalemleri içermez).
                     
                     **2. Bütçe ve Kapasite Uygunluğu:**
                     * Tahkik edilen yatırım bedeli 1M€ - 50M€ hedef bütçe aralığımız içerisindedir.
                     
                     **3. Lojistik ve Tedarik Zinciri:**
-                    * Türkiye'ye yakın Balkan/Doğu Avrupa hattında olması nedeniyle lojistik operasyonlar ve malzeme sevkiyatı avantajlıdır.
+                    * Türkiye'ye yakın coğrafi konum sayesinde lojistik operasyonlar, malzeme sevkiyatı ve şantiye mobilizasyonu son derece avantajlıdır.
                     
                     **4. Stratejik Karar (GO / NO-GO):**
-                    * **GİRİLMELİDİR (GO).** Hedef coğrafyadaki pazar payımızı artırmak için yüksek öncelikli fırsattır.
+                    * **GİRİLMELİDİR (GO).** Onaylı hedef bölgemizdeki pazar payımızı ve referanslarımızı artırmak için yüksek öncelikli fırsattır.
                     """)
                     
         with kolon2:
@@ -157,13 +172,13 @@ if not df.empty:
 ==================================================
 Tarih: {time.strftime('%Y-%m-%d')}
 Kurum: {ihale_bilgisi['Kurum']}
-Hedef Ülke: {ihale_bilgisi['Ülke']} (Balkanlar / Doğu Avrupa)
+Hedef Ülke: {ihale_bilgisi['Ülke']} (Onaylı Balkan / Doğu Avrupa Hattı)
 Proje / İhale Adı: {ihale_bilgisi['İhale/Proje Adı']}
 Son Başvuru Tarihi: {ihale_bilgisi['Tarih / Son Başvuru']}
 --------------------------------------------------
 
 1. PROJE KAPSAMI VE COĞRAFİ KRİTERLER
-- Proje Bulgaristan ve Yunanistan haricindeki Doğu Avrupa ve Balkan hattında konumlanmıştır.
+- Proje, şirketimizin stratejik olarak onay verdiği Balkanlar ve Doğu Avrupa coğrafyasında konumlanmıştır.
 - Köprü ve viyadük gibi altyapı işlerini içermemekte olup, tamamen bina/üst yapı (okul/konut/hastane/sanayi) odaklıdır.
 
 2. FİNANSAL VE LOJİSTİK RİSK ANALİZİ
@@ -171,7 +186,7 @@ Son Başvuru Tarihi: {ihale_bilgisi['Tarih / Son Başvuru']}
 - Türkiye'ye yakınlık, lojistik ve taşeron yönetimi açısından operasyonel riskleri minimize etmektedir.
 
 3. SONUÇ VE YÖNETİM TAVSİYESİ (GO / NO-GO)
-- Öneri: Hedef bölgedeki üst yapı yapılanmamız adına ihaleye teklif verilmesi uygundur.
+- Öneri: Onaylı bölgedeki üst yapı yapılanmamız adına ihaleye teklif verilmesi uygundur.
 - Üst Yapı Uyum Skoru: Çok Yüksek (%95+)
 
 --------------------------------------------------
@@ -180,10 +195,10 @@ Son Başvuru Tarihi: {ihale_bilgisi['Tarih / Son Başvuru']}
             st.download_button(
                 label="📥 Üst Yapı Yönetim Raporunu İndir (.TXT)",
                 data=kurumsal_rapor,
-                file_name="Balkanlar_Ust_Yapi_Ihale_Raporu.txt",
+                file_name="Onayli_Balkanlar_Ust_Yapi_Raporu.txt",
                 mime="text/plain"
             )
     else:
-        st.warning("Seçilen coğrafi ve teknik kriterlere uygun (Bulgaristan/Yunanistan ve köprüler hariç tutulduğunda) üst yapı projesi bulunamadı.")
+        st.warning("Seçilen coğrafi ve teknik kriterlere uygun (Beyaz liste dışındaki ülkeler ve köprüler hariç tutulduğunda) üst yapı projesi bulunamadı.")
 else:
     st.error("Veri bulunamadı. Lütfen sol menüden 'Verileri İnternetten Güncelle' butonuna basın.")
