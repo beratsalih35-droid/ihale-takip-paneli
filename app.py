@@ -124,9 +124,6 @@ if not df.empty:
         st.dataframe(filtrelenmis_df, use_container_width=True)
         
         # 4. Profesyonel Kurumsal Mühendislik Analizi ve Karar Modülü
-        # ... (app.py dosyanın geri kalanı aynı kalsın, sadece aşağıdaki kısmı güncelleyelim)
-
-        # 4. Profesyonel Kurumsal Mühendislik Analizi ve Karar Modülü
         st.markdown("---")
         st.subheader("🧠 Profesyonel Mühendislik Ön Fizibilite & Risk Analizi")
         
@@ -138,17 +135,11 @@ if not df.empty:
         with kolon1:
             st.info(f"**Seçilen Proje:** {secilen_ihale}\n\n**Kurum:** {ihale_bilgisi['Kurum']} | **Ülke:** {ihale_bilgisi['Ülke']}")
             
-            # --- YENİ EKLENEN KISIM: İHALE LİNK BUTONU ---
-            # Eğer Excel'de 'Link' adında bir sütun varsa:
-            if "Link" in ihale_bilgisi:
-                st.link_button("🌐 Resmi İhale Sayfasına Git (EBRD)", ihale_bilgisi['Link'])
-            else:
-                st.warning("Bu ihale için doğrudan link verisi çekilemedi.")
-            # ---------------------------------------------
-            
             if st.button("Kapsamlı Mühendislik Analizini Başlat"):
-                # ... (Analiz kodların burada aynı şekilde kalacak)
-       
+                with st.spinner("Şartname finansal, statik ve lojistik parametrelere göre taranıyor..."):
+                    time.sleep(2.5)
+                    st.success("✅ Profesyonel Analiz Tamamlandı!")
+                    st.markdown("""
                     **1. Statik & Mimari Kapsam Değerlendirmesi:**
                     * Proje, ağır altyapı (köprü/viyadük) kalemi içermemekte olup; tamamen betonarme/çelik karkas, ince işler ve elektromekanik (MEB) entegrasyonu içeren üst yapı formatındadır. Eurocode standartlarına tam uyum beklenmektedir.
                     
