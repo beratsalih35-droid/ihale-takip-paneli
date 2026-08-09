@@ -35,26 +35,15 @@ if not giris_kontrolu():
 st.title("🏢 Doğu Avrupa Üst Yapı İhale & Uygunluk Analiz Paneli")
 st.markdown("*Odak Alanı: Okul, Konut, Hastane, Sanayi ve Her Türlü Bina Yapıları (Köprü/Viyadük Hariç)*")
 
-# 1. Excel Verilerini Okuma
+# 1. EBRD Excel Verisini Okuma
 @st.cache_data(ttl=60)
 def verileri_yukle():
-    df_listesi = []
-    wb_yolu = os.path.join("Dunya_Bankasi_Botu", "wb_veriler.xlsx")
-    if os.path.exists(wb_yolu):
-        df_wb = pd.read_excel(wb_yolu)
-        df_wb.rename(columns={"Tarih": "Tarih / Son Başvuru"}, inplace=True)
-        df_listesi.append(df_wb)
-        
     ebrd_yolu = os.path.join("EBRD_Botu", "ebrd_veriler.xlsx")
     if os.path.exists(ebrd_yolu):
         df_ebrd = pd.read_excel(ebrd_yolu)
         df_ebrd.rename(columns={"Son Başvuru / Tarih": "Tarih / Son Başvuru"}, inplace=True)
-        df_listesi.append(df_ebrd)
-        
-    if len(df_listesi) > 0:
-        birlesik_df = pd.concat(df_listesi, ignore_index=True)
-        birlesik_df.fillna("Belirtilmemiş", inplace=True)
-        return birlesik_df
+        df_ebrd.fillna("Belirtilmemiş", inplace=True)
+        return df_ebrd
     else:
         return pd.DataFrame(columns=["Kurum", "Ülke", "İhale/Proje Adı", "Tarih / Son Başvuru"])
 
@@ -74,16 +63,16 @@ st.sidebar.markdown("---")
 st.sidebar.header("Veri Yönetimi")
 
 if st.sidebar.button("🔄 Verileri İnternetten Güncelle"):
-    with st.spinner("Botlar güncel ihale listesini çekiyor..."):
+    with st.spinner("EBRD ECEPP sisteminden güncel ihaleler çekiliyor..."):
         try:
-            subprocess.run(["python", "Dunya_Bankasi_Botu/wb_cekici.py"], check=True)
+            # Sadece çalışan EBRD botunu tetikliyoruz
             subprocess.run(["python", "EBRD_Botu/ebrd_cekici.py"], check=True)
             st.cache_data.clear()
-            st.sidebar.success("✅ Güncellendi!")
+            st.sidebar.success("✅ Veriler başarıyla güncellendi!")
             time.sleep(2)
             st.rerun()
         except Exception as e:
-            st.sidebar.error(f"Hata: {e}")
+            st.sidebar.error(f"Güncelleme hatası: {e}")
 
 df = verileri_yukle()
 
@@ -97,24 +86,22 @@ else:
 st.subheader("📌 Filtrelenmiş Üst Yapı Portföyü")
 
 if not df.empty:
-    # Önce ülke filtresi
     filtrelenmis_df = df[df["Ülke"].isin(hedef_ulkeler)].copy()
     
-    # KRİTER FİLTRESİ: Köprü ve Viyadük içeren projeleri otomatik ayıkla (hariç tut)
+    # KRİTER FİLTRESİ: Köprü ve Viyadük içeren projeleri otomatik ayıkla
     haric_tutulacaklar = ["bridge", "viaduct", "köprü", "viyadük", "overpass", "highway", "road"]
     
     def ust_yapi_muafiyeti(satir):
         baslik = str(satir["İhale/Proje Adı"]).lower()
         for kelime in haric_tutulacaklar:
             if kelime in baslik:
-                return False # Köprü/Viyadük ise listeden çıkar
+                return False
         return True
         
     if not filtrelenmis_df.empty:
         filtrelenmis_df = filtrelenmis_df[filtrelenmis_df.apply(ust_yapi_muafiyeti, axis=1)]
         
     if not filtrelenmis_df.empty:
-        # Akıllı üst yapı uyum skoru (Okul, Hastane, Konut, Sanayi kelimelerine göre)
         def skor_hesapla(satir):
             baslik = str(satir["İhale/Proje Adı"]).lower()
             puan = 75
