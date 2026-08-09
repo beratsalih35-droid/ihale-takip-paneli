@@ -124,6 +124,30 @@ if not df.empty:
         st.dataframe(filtrelenmis_df, use_container_width=True)
         
         # 4. Profesyonel Kurumsal Mühendislik Analizi ve Karar Modülü
+        # ... (app.py dosyanın geri kalanı aynı kalsın, sadece aşağıdaki kısmı güncelleyelim)
+
+        # 4. Profesyonel Kurumsal Mühendislik Analizi ve Karar Modülü
+        st.markdown("---")
+        st.subheader("🧠 Profesyonel Mühendislik Ön Fizibilite & Risk Analizi")
+        
+        secilen_ihale = st.selectbox("Detaylı İnceleme İçin Proje Seçin:", filtrelenmis_df["İhale/Proje Adı"])
+        ihale_bilgisi = filtrelenmis_df[filtrelenmis_df["İhale/Proje Adı"] == secilen_ihale].iloc[0]
+
+        kolon1, kolon2 = st.columns(2)
+        
+        with kolon1:
+            st.info(f"**Seçilen Proje:** {secilen_ihale}\n\n**Kurum:** {ihale_bilgisi['Kurum']} | **Ülke:** {ihale_bilgisi['Ülke']}")
+            
+            # --- YENİ EKLENEN KISIM: İHALE LİNK BUTONU ---
+            # Eğer Excel'de 'Link' adında bir sütun varsa:
+            if "Link" in ihale_bilgisi:
+                st.link_button("🌐 Resmi İhale Sayfasına Git (EBRD)", ihale_bilgisi['Link'])
+            else:
+                st.warning("Bu ihale için doğrudan link verisi çekilemedi.")
+            # ---------------------------------------------
+            
+            if st.button("Kapsamlı Mühendislik Analizini Başlat"):
+                # ... (Analiz kodların burada aynı şekilde kalacak)
         st.markdown("---")
         st.subheader("🧠 Profesyonel Mühendislik Ön Fizibilite & Risk Analizi")
         
